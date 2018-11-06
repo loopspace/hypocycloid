@@ -4,38 +4,56 @@ var timer;
 var parameter;
 var hypocycloid;
 
+// Parse query string
+var qs = (function(a) {
+    if (a == "") return {};
+    var b = {};
+    for (var i = 0; i < a.length; ++i)
+    {
+        var p=a[i].split('=', 2);
+        if (p.length == 1)
+            b[p[0]] = "";
+        else
+            b[p[0]] = decodeURIComponent(p[1].replace(/\+/g, " "));
+    }
+    return b;
+})(window.location.search.substr(1).split('&'));
+
+// Based on http://stackoverflow.com/a/21059677
+
 function init() {
     var cvs = document.getElementById('cvs');
     var ctx = cvs.getContext('2d');
+    var opts = setDefaults(qs);
     
     parameter = new Parameter('paramtbl');
-    parameter.integer('Numerator','p',1,24,3,reset);
-    parameter.integer('Denominator','q',1,24,8,reset);
-    parameter.integer('Clockwise polygon size','n',1,12,3,reset);
-    parameter.integer('Anticlockwise polygon size','m',1,12,8,reset);
-    parameter.number('Speed','speed',0,5,1,reset);
-    parameter.boolean('Outer Circle','oc',true,reset);
-    parameter.boolean('Trace','trace',false,reset);
+    parameter.integer('Numerator','p',1,24,opts.p,reset);
+    parameter.integer('Denominator','q',1,24,opts.q,reset);
+    parameter.integer('Clockwise polygon size','n',1,12,opts.n,reset);
+    parameter.integer('Anticlockwise polygon size','m',1,12,opts.m,reset);
+    parameter.number('Speed','speed',0,5,opts.speed,reset);
+    parameter.boolean('Outer Circle','oc',opts.oc,reset);
+    parameter.boolean('Trace','trace',opts.trace,reset);
     parameter.separator('First Anticlockwise Circle:');
-    parameter.boolean('Circle','afc',true,reset); 
-    parameter.boolean('Lines','afl',true,reset); 
-    parameter.boolean('Dots','afds',true,reset);
-    parameter.boolean('Singleton','afd',false,reset);
+    parameter.boolean('Circle','afc',opts.afc,reset); 
+    parameter.boolean('Lines','afl',opts.afl,reset); 
+    parameter.boolean('Dots','afds',opts.afds,reset);
+    parameter.boolean('Singleton','afd',opts.afd,reset);
     parameter.separator('Other Anticlockwise Circles:');
-    parameter.boolean('Circle','arc',true,reset); 
-    parameter.boolean('Lines','arl',true,reset); 
-    parameter.boolean('Dots','ards',true,reset); 
-    parameter.boolean('Singleton','ard',false,reset); 
+    parameter.boolean('Circle','arc',opts.arc,reset); 
+    parameter.boolean('Lines','arl',opts.arl,reset); 
+    parameter.boolean('Dots','ards',opts.ards,reset); 
+    parameter.boolean('Singleton','ard',opts.ard,reset); 
     parameter.separator('First Clockwise Circle:');
-    parameter.boolean('Circle','cfc',true,reset); 
-    parameter.boolean('Lines','cfl',true,reset); 
-    parameter.boolean('Dots','cfds',true,reset); 
-    parameter.boolean('Singleton','cfd',false,reset); 
+    parameter.boolean('Circle','cfc',opts.cfc,reset); 
+    parameter.boolean('Lines','cfl',opts.cfl,reset); 
+    parameter.boolean('Dots','cfds',opts.cfds,reset); 
+    parameter.boolean('Singleton','cfd',opts.cfd,reset); 
     parameter.separator('Other Clockwise Circles:');
-    parameter.boolean('Circle','crc',true,reset); 
-    parameter.boolean('Lines','crl',true,reset); 
-    parameter.boolean('Dots','crds',true,reset);
-    parameter.boolean('Singleton','crd',false,reset);
+    parameter.boolean('Circle','crc',opts.crc,reset); 
+    parameter.boolean('Lines','crl',opts.crl,reset); 
+    parameter.boolean('Dots','crds',opts.crds,reset);
+    parameter.boolean('Singleton','crd',opts.crd,reset);
     
     timer = new Timer();
     hypocycloid = new Hypocycloid(ctx);
@@ -109,11 +127,97 @@ function reset() {
 	    dot: parameter.getParameter('crd'),
 	},
     }
+    parameter.serialise();
     hypocycloid.setParameters(p,q,n,m,opts);
 }
 
+function getOption(type,opt,def) {
+    if (type == "integer") {
+	if (opt !== undefined) {
+	    return parseInt(opt,10);
+	} else {
+	    return def;
+	}
+    } else if (type == "float") {
+	if (opt !== undefined) {
+	    return parseFloat(opt);
+	} else {
+	    return def;
+	}
+    } else if (type == "string") {
+	if (opt !== undefined) {
+	    return opt;
+	} else {
+	    return def;
+	}
+    } else if (type == "boolean") {
+	if (opt !== undefined) {
+	    if (opt.toLowerCase() == "false") {
+		return false;
+	    } else {
+		return true;
+	    }
+	} else {
+	    return def;
+	}
+    }
+    return def;
+}
+
+function setDefaults(q) {
+    var opts = {};
+
+    opts.p = getOption("integer", q.p, 3);
+    opts.q = getOption("integer", q.q, 8);
+    opts.n = getOption("integer", q.n, 3);
+    opts.m = getOption("integer", q.m, 8);
+    opts.speed = getOption("float",q.speed, 1);
+    opts.oc = getOption("boolean", q.oc, true);
+    opts.trace = getOption("boolean", q.trace, false);
+
+    opts.afc = getOption("boolean", q.afc, true);
+    opts.afl = getOption("boolean", q.afl, true);
+    opts.afds = getOption("boolean", q.afds, true);
+    opts.afd = getOption("boolean", q.afd, false);
+
+    opts.arc = getOption("boolean", q.arc, true);
+    opts.arl = getOption("boolean", q.arl, true);
+    opts.ards = getOption("boolean", q.ards, true);
+    opts.ard = getOption("boolean", q.ard, false);
+    
+    opts.cfc = getOption("boolean", q.cfc, true);
+    opts.cfl = getOption("boolean", q.cfl, true);
+    opts.cfds = getOption("boolean", q.cfds, true);
+    opts.cfd = getOption("boolean", q.cfd, false);
+
+    opts.crc = getOption("boolean", q.crc, true);
+    opts.crl = getOption("boolean", q.crl, true);
+    opts.crds = getOption("boolean", q.crds, true);
+    opts.crd = getOption("boolean", q.crd, false);
+
+    return opts;
+}
+
 var Parameter = function(id) {
-    this.formtbl = document.getElementById(id);
+    var formtbl = document.getElementById(id);
+    var tbdy = document.createElement('tbody');
+    formtbl.appendChild(tbdy);
+    var tlnk = document.createElement('tbody');
+    var tr = document.createElement('tr');
+
+    var td = document.createElement('td');
+    tr.appendChild(td);
+    var a = document.createElement('a');
+    a.setAttribute('href',"");
+    var txt = document.createTextNode('Link to these settings');
+    a.appendChild(txt);
+    td.appendChild(a);
+    
+    tlnk.appendChild(tr);
+    formtbl.appendChild(tlnk);
+
+    this.settinglink = a;
+    this.formtbl = tbdy;
     this.values = {};
 }
 
@@ -212,6 +316,24 @@ Parameter.prototype.getParameter = function(n) {
     return this.values[n]();
 }
 
+Parameter.prototype.serialise = function() {
+    var objs = Object.entries(this.values);
+    var params = [];
+    var p;
+    for (var i = 0; i < objs.length; i++) {
+	p = objs[i][1]();
+	if (typeof p == "boolean") {
+	    if (p) {
+		params.push(objs[i][0]);
+	    } else {
+		params.push(objs[i][0] + "=false");
+	    }
+	} else {
+	    params.push(objs[i][0] + "=" + p);
+	}
+    }
+    this.settinglink.setAttribute("href", "?" + params.join("&"));
+}
 
 var Timer = function() {
     this.stime = Date.now();
